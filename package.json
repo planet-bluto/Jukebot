@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "gsheetdb": "^1.0.4"
+  }
+}
