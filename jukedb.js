@@ -1,6 +1,15 @@
 const print = console.log
 const gsheetdb = require('gsheetdb')
 
+const newRows = {
+    members: [
+        "{null}", // user id
+        0, // jukes
+        0, // boxes
+        "{null}" // channel
+    ]
+}
+
 function wait(ms) {
     return new Promise((res, rej) => {
         setTimeout(() => {
@@ -20,12 +29,16 @@ var formatData = (data) => {
     data.forEach((row, ind) => {
         if (ind == 0) {
             headers = row.values
+            returnObj._rowIndex = {}
+            headers.forEach((header, h_ind) => {
+                if (h_ind == 0) return;
+                returnObj._rowIndex[header] = h_ind
+            })
         } else {
             let this_key = ""
             row.values.forEach((value, v_ind) => {
                 if (v_ind == 0) {
                     this_key = value
-                    returnObj._rowIndex = {}
                     returnObj[this_key] = {
                         _index: row.rowNb,
                         returnData: {},
@@ -33,7 +46,6 @@ var formatData = (data) => {
                     }
                 } else {
                     returnObj[this_key].returnData[headers[v_ind]] = value
-                    returnObj._rowIndex[headers[v_ind]] = v_ind
                 }
             })
         }
@@ -63,7 +75,9 @@ class Sheet {
     }
 
     get(user, key) {
-        return this._data[user].returnData[key]
+        let returnVal = this._data[user].returnData[key]
+        if (returnVal == "{null}") { returnVal = null }
+        return returnVal
     }
 
     on(event, callback) {
@@ -71,13 +85,14 @@ class Sheet {
             this._events[event] = []
         }
         this._events[event].push(callback)
-        print(this._events[event])
     }
 
     _call(event, ...args) {
-        this._events[event].forEach(callback => {
-            callback(...args)
-        })
+        if (this._events[event]) {
+            this._events[event].forEach(callback => {
+                callback(...args)
+            })
+        }
     }
 
     async _pend() {
@@ -102,7 +117,8 @@ class Sheet {
             newDataArray[valueInd] = value
             await this._sheet.updateRow(userData._index, newDataArray)
         } else {
-            let newRowData = [user, 0, 0]
+            let newRowData = clone(newRows[this._name])
+            newRowData[0] = user
             newRowData[this._data._rowIndex[key]] = value
             await this._sheet.insertRows([newRowData])
         }
@@ -122,6 +138,20 @@ class Sheet {
     }
 }
 
+var MemberDB = new Sheet("members")
+MemberDB.canPurchase = (user, amount) => {
+    let jukes = MemberDB.get(user, "jukes")
+    let boxes = MemberDB.get(user, "boxes")
+
+    if (jukes > amount) {
+        return true
+    } else if (boxes > amount/50) {
+        return true
+    } else {
+        return false
+    }
+}
+
 module.exports = { // JukeDB
-    MemberDB: new Sheet("members"),
+    MemberDB: MemberDB,
 }
