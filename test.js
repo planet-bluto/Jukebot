@@ -4,13 +4,17 @@ require('dotenv').config({ path: `${__dirname}/.env` })
 const token = process.env['token']
 const GUILD_ID = process.env['guild']
 const CLIENT_ID = process.env['client']
+const WELCOME_CHANNEL = process.env['wchl']
+const INFO_CHANNEL = process.env['ichl']
+const ROLES_CHANNEL = process.env['rchl']
+const WELCOME_EMOJI = process.env['emoji_w']
 
 const {MemberDB} = require("./jukedb.js")
 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 
-const { Client, IntentsBitField, Message, Collection, Events } = require('discord.js')
+const { Client, IntentsBitField, ChatInputCommandInteraction, Collection, Events } = require('discord.js')
 const client = new Client({ intents: Object.values(IntentsBitField.Flags) })
 
 
@@ -22,12 +26,14 @@ const commands = []
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'))
 
 for (const file of commandFiles) {
-    const command = require(`./commands/${file}`)
-    var commandJSON = JSON.stringify(command.data)
-    commands.push(command.data)
+    if (!file.startsWith("!")) {
+        const command = require(`./commands/${file}`)
+        var commandJSON = JSON.stringify(command.data)
+        commands.push(command.data)
 
-    if ('data' in command && 'execute' in command) {
-        client.commands.set(command.data.name, command)
+        if ('data' in command && 'execute' in command) {
+            client.commands.set(command.data.name, command)
+        }
     }
 }
 
@@ -73,8 +79,27 @@ registerSlashCommands()
 
 //// DISCORD.JS INITIALIZE ////
 
+client.on("channelDelete", async (channel) => {
+    let user_id = MemberDB.has("channel", channel.id)
+    print("oh no... "+user_id)
+    if (user_id) {
+        await MemberDB.set(user_id, "channel", null)
+        let user = await client.users.fetch(user_id)
+        user.send(`**‼ Your PC has been deleted! ‼**\n*(This is __permanent__ and cannot be undone)*`)
+    }
+})
+
+client.on("guildMemberAdd", async (member) => {
+    let channel = await client.channels.fetch(WELCOME_CHANNEL)
+    channel.send(`${WELCOME_EMOJI} **Welcome, <@${member.id}>, to TheJukeBox Music Community!** ${WELCOME_EMOJI}\n*(Check out <#${INFO_CHANNEL}> for more information, or get your roles in <#${ROLES_CHANNEL}>)*`)
+})
+
 client.on("ready", () => {
     print(`${client.user.username} Initialized!`)
+})
+
+client.on("messageCreate", msg => {
+    print(msg.content)
 })
 
 client.login(token)

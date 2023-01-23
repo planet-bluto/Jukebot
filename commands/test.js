@@ -1,9 +1,10 @@
 const print = console.log
 const { SlashCommandBuilder } = require('discord.js')
+const JukeUtils = require("../jukeutils.js")
 
 const COMMAND_INFO = {
-	name: "ping",
-	description: "Replies with pong!"
+	name: "testname",
+	description: "Convert string to valid channel name"
 }
 
 const command = new SlashCommandBuilder()
@@ -14,13 +15,18 @@ command.setDescription(COMMAND_INFO.description)
 
 const choice = (val) => {return {name: val, value: val}}
 
-// command.addStringOption(option => option.setName("placeholder")
-// 	.setDescription("this is a placeholder option"))
+command.addStringOption(option => option.setName("string")
+	.setDescription("String to convert")
+	.setRequired(true))
 
 ///////////////////////////////////////////
 
 async function execute(interaction) {
-	await interaction.reply("Pong!")
+	let str = interaction.options.get("string").value
+	await interaction.reply({
+		content: `__**\`\`Channel Name:\`\`**__\n${JukeUtils.validChannelName(str)}`,
+		ephemeral: true
+	})
 }
 
 module.exports = {

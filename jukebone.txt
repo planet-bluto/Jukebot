@@ -1,0 +1,23 @@
+• Work on JukeBot
+	- Move to MongoDB and Mongoose instead of weird JukeDB Google Sheets thing
+	- Database collecting thing
+		> Thing that collects users easily
+		> Collection[`${user_id}-Favorites`] == all PCs user has liked
+		> Collection[`
+		> Circumvent role limit EASY
+	- Figure out Battle hosting implementation
+		> Submitting tracks...
+			• For now, people upload directly to localy maintained PI server
+			• Bot sends neocities link that redirects to web app
+				(This is for transitioning from PI to heroku or something)
+			• Convert audio to proc. video that you can natively embed??
+	- Finish implementing permisison commands (/admin, /manager, etc.)
+	- '/like' command?
+		> People can like PCs??
+		> 20+ Liked PCs get move to a special category?
+		> Owners of special PCs get a special role too??
+	- Definitely make a help command
+• Make a promo for JukeBox server?
+	- I think more people will join after seeing it
+	- Marks rebirth or whatever
+• Win >:)

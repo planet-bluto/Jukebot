@@ -1,5 +1,6 @@
 const print = console.log
 const gsheetdb = require('gsheetdb')
+const SHEET_ID = process.env['sheet']
 
 const newRows = {
     members: [
@@ -58,7 +59,7 @@ class Sheet {
         this.inited = false
         this._name = name
         this._sheet = new gsheetdb({
-            spreadsheetId: '1e8UHxlLCtxEdqTTdTa6rqvnvJ7FIiKq_ClFFIyaxmnA',
+            spreadsheetId: SHEET_ID,
             sheetName: name,
             credentialsJSON: require('./credentials.json')
         })
@@ -75,9 +76,14 @@ class Sheet {
     }
 
     get(user, key) {
-        let returnVal = this._data[user].returnData[key]
-        if (returnVal == "{null}") { returnVal = null }
-        return returnVal
+        let userObj = this._data[user]
+        if (userObj != null) {
+            let returnVal = userObj.returnData[key]
+            if (returnVal == "{null}") { returnVal = null }
+            return returnVal
+        } else {
+            return null
+        }
     }
 
     on(event, callback) {
@@ -110,6 +116,7 @@ class Sheet {
 
     async set(user, key, value) {
         await this._pend()
+        if (value == null) { value = "{null}" }
         let userData = this._data[user]
         if (userData != null) {
             let valueInd = this._data._rowIndex[key]
@@ -136,16 +143,29 @@ class Sheet {
         let newValue = (userData.returnData[key]-value)
         await this.set(user, key, newValue)
     }
+
+    has(key, value) {
+        var return_id = null
+
+        Object.keys(this._data).forEach(obj_key => {
+            if (!obj_key.startsWith("_")) { // skip lib keys
+                let userObj = this._data[obj_key].returnData
+                if (userObj[key] == value) {
+                    return_id = obj_key
+                }
+            }
+        })
+
+        return return_id
+    }
 }
 
 var MemberDB = new Sheet("members")
-MemberDB.canPurchase = (user, amount) => {
-    let jukes = MemberDB.get(user, "jukes")
-    let boxes = MemberDB.get(user, "boxes")
+MemberDB.purchase = async (user, type, amount) => {
+    let balance = MemberDB.get(user, type)
 
-    if (jukes > amount) {
-        return true
-    } else if (boxes > amount/50) {
+    if (balance >= amount) {
+        await MemberDB.sub(user, type, amount)
         return true
     } else {
         return false

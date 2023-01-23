@@ -1,5 +1,8 @@
 const print = console.log
 const { SlashCommandBuilder } = require('discord.js')
+const { MemberDB } = require("../jukedb.js")
+const PERMS = require("../perms.js")
+
 const COMMAND_INFO = {
 	name: "set",
 	description: "(Server Admin Only) Sets someone's jukes balance"
@@ -13,12 +16,12 @@ command.setDescription(COMMAND_INFO.description)
 
 const choice = (val) => {return {name: val, value: val}}
 
-command.addUserOption(option => option.setName('member')
-	.setDescription("Member's who bank account to set")
+command.addMentionableOption(option => option.setName('member')
+	.setDescription("Who's bank account to set")
 	.setRequired(true))
 
 command.addStringOption(option => option.setName('type')
-	.setDescription("Which type of currency to set")
+	.setDescription("Which type of currency to set")			
 	.addChoices(
 		choice("jukes"),
 		choice("boxes")
@@ -29,20 +32,36 @@ command.addNumberOption(option => option.setName('amount')
 	.setDescription("Amount to set specified currency to")
 	.setRequired(true))
 
-///////////////////////////////////////////
+command.setDefaultMemberPermissions(PERMS.ADMIN)
 
-const { MemberDB } = require("../jukedb.js")
-const PERMS = require("../perms.js")
+///////////////////////////////////////////
 
 async function execute(interaction) {
 	if (interaction.member.permissions.has(PERMS.ADMIN)) {
-		await interaction.deferReply()
-		let user = interaction.options.get("member").user
+		await interaction.deferReply({ephemeral: true})
+
+		let who = interaction.options.get("member")
 		let type = interaction.options.get("type").value
 		let amount = interaction.options.get("amount").value
-		await MemberDB.set(user.id, type, amount)
+
+		var whos = []
+		var pre = ""
+		if (who.role) {
+			pre = "@&"
+			whos = Array.from(who.role.members.values())
+		} else {
+			pre = "@"
+			whos = [who.user]
+		}
+
+		var sets = []
+		whos.forEach(async (user, u_i) => {
+			sets.push(MemberDB.set(user.id, type, amount))
+		})
+
+		await Promise.all(sets)
 		await interaction.editReply({
-			content: `Set <@${user.id}>'s ${type} balance to \`\`${MemberDB.get(user.id, type)}\`\``
+			content: `Set <${pre}${who.value}>'s ${type} balance to \`\`${amount}\`\``
 		})
 	} else {
 		await interaction.reply("You don't have access to this command")

@@ -2,8 +2,16 @@ const print = console.log
 const { PermissionsBitField } = require('discord.js')
 const DEFAULT = PermissionsBitField.Default
 
+const pf = (str) => PermissionsBitField.Flags[str]
+
 module.exports = {
 	DEFAULT: DEFAULT,
-	OWNER: PermissionsBitField.Flags["ManageChannels"],
+	OWNER: new PermissionsBitField([
+		pf("ManageChannels"),
+		pf("ManageWebhooks"),
+		pf("ManageMessages"),
+		pf("ManageRoles"),
+		pf("ManageThreads")
+	]),
 	ADMIN: PermissionsBitField.Flags["Administrator"]
 }

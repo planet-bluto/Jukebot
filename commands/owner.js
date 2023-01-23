@@ -2,8 +2,8 @@ const print = console.log
 const { SlashCommandBuilder } = require('discord.js')
 
 const COMMAND_INFO = {
-	name: "ping",
-	description: "Replies with pong!"
+	name: "owner",
+	description: "Displays the current PCs owner"
 }
 
 const command = new SlashCommandBuilder()
