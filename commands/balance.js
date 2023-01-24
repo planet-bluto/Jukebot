@@ -27,7 +27,7 @@ async function execute(interaction) {
 	let jukes = MemberDB.get(user.id, "jukes")
 	let boxes = MemberDB.get(user.id, "boxes")
 	let res = await Promise.all([jukes, boxes])
-	await interaction.editReply(`__**${user.username}**'s Balance:__\n\n🔴 Jukes: \`\`${jukes}\`\`\n🔵 Boxes: \`\`${boxes}\`\``)
+	await interaction.editReply(`__**${user.username}**'s Balance:__\n\n🔴 Jukes: \`\`${res[0]}\`\`\n🔵 Boxes: \`\`${res[1]}\`\``)
 }
 
 module.exports = {

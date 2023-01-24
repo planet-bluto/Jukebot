@@ -3,8 +3,8 @@ const { SlashCommandBuilder } = require('discord.js')
 const JukeUtils = require("../jukeutils.js")
 
 const COMMAND_INFO = {
-	name: "testname",
-	description: "Convert string to valid channel name"
+	name: "test",
+	description: "This command is a random test command. Don't use it 😬"
 }
 
 const command = new SlashCommandBuilder()

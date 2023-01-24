@@ -26,7 +26,8 @@ command.addStringOption(option => option.setName("name")
 
 async function execute(interaction) {
 	let {user, client} = interaction
-	let PC_ID = MemberDB.get(user.id, "channel")
+	let PC_ID = await MemberDB.get(user.id, "channel")
+	print(PC_ID)
 	await interaction.deferReply({ephemeral: true})
 
 	async function makePC() {
@@ -42,7 +43,7 @@ async function execute(interaction) {
 				}
 			]
 		})
-		await MemberDB.set(user.id, "channel", this_pc.id)
+		await MemberDB.set(user.id, "PC", this_pc.id)
 		await interaction.editReply(`🎉 **Your PC has been made! <#${this_pc.id}>** 🎉\n*(You have permissions to edit the channel as you please!)*`)
 	}
 

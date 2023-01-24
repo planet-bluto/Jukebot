@@ -9,7 +9,7 @@ const INFO_CHANNEL = process.env['ichl']
 const ROLES_CHANNEL = process.env['rchl']
 const WELCOME_EMOJI = process.env['emoji_w']
 
-const {MemberDB} = require("./jukedb.js")
+const {MemberDB, ChannelDB} = require("./jukedb.js")
 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
@@ -80,7 +80,7 @@ registerSlashCommands()
 //// DISCORD.JS INITIALIZE ////
 
 client.on("channelDelete", async (channel) => {
-    let user_id = MemberDB.has("channel", channel.id)
+    let user_id = await ChannelDB.has(channel.id)
     print("oh no... "+user_id)
     if (user_id) {
         await MemberDB.set(user_id, "channel", null)
