@@ -47,7 +47,7 @@ function unescape(str) {
     return newStr
 }
 
-var formatData = (data) => {
+var formatData = (name, data) => {
     // print(data)
     let returnObj = {}
     let headers = []
@@ -70,6 +70,18 @@ var formatData = (data) => {
                         _rowData: row.values
                     }
                 } else {
+                    let valueType = (value == "{null}" ? "null" : schemas[name][v_ind].type)
+                    switch (valueType) {
+                        case "null":
+                            value = null
+                        break;
+                        case "String":
+                            value = unescape(value)
+                        break;
+                        case "Array":
+                            value = JSON.parse(value)
+                        break;
+                    }
                     returnObj[this_key].returnData[headers[v_ind]] = value
                 }
             })
@@ -96,16 +108,14 @@ class Sheet {
 
     async _updateData() {
         let data = await this._sheet.getData()
-        this._data = formatData(data)
+        this._data = formatData(this._name, data)
     }
 
-    async get(user, key) {
+    async get(id, key) {
         await this._updateData()
-        let userObj = this._data[user]
-        if (userObj != null) {
-            let returnVal = userObj.returnData[key]
-            if (returnVal == "{null}") { returnVal = null }
-            return returnVal
+        let idObj = this._data[id]
+        if (idObj != null) {
+            return idObj.returnData
         } else {
             return null
         }
@@ -139,11 +149,12 @@ class Sheet {
         })
     }
 
-    async set(user, key, value) {
+    async set(id, key, value) {
         await this._updateData()
-        let userData = this._data[user]
+        let idData = this._data[id]
+        print(this._data._rowIndex[key])
         let valueInd = this._data._rowIndex[key]
-        let valueType = (value == null ? "null" : schemas[this._name][valueInd])
+        let valueType = (value == null ? "null" : schemas[this._name][valueInd].type)
         switch (valueType) {
             case "null":
                 value = "{null}"
@@ -155,31 +166,31 @@ class Sheet {
                 value = escape(value)
             break;
         }
-        if (userData != null) {
-            let newDataArray = userData._rowData
+        if (idData != null) {
+            let newDataArray = idData._rowData
             newDataArray[valueInd] = value
-            await this._sheet.updateRow(userData._index, newDataArray)
+            await this._sheet.updateRow(idData._index, newDataArray)
         } else {
             let newRowData = schemas[this._name].map(sch => sch.default)
-            newRowData[0] = user
+            newRowData[0] = id
             newRowData[this._data._rowIndex[key]] = value
             await this._sheet.insertRows([newRowData])
         }
         await this._updateData()
     }
 
-    async add(user, key, value) {
+    async add(id, key, value) {
         await this._updateData()
-        let userData = this._data[user]
-        let newValue = (userData.returnData[key]+value)
-        await this.set(user, key, newValue)
+        let idData = this._data[id]
+        let newValue = (idData.returnData[key]+value)
+        await this.set(id, key, newValue)
     }
 
-    async sub(user, key, value) {
+    async sub(id, key, value) {
         await this._updateData()
-        let userData = this._data[user]
-        let newValue = (userData.returnData[key]-value)
-        await this.set(user, key, newValue)
+        let idData = this._data[id]
+        let newValue = (idData.returnData[key]-value)
+        await this.set(id, key, newValue)
     }
 
     async has(key, value) {
@@ -188,8 +199,8 @@ class Sheet {
 
         Object.keys(this._data).forEach(obj_key => {
             if (!obj_key.startsWith("_")) { // skip lib keys
-                let userObj = this._data[obj_key].returnData
-                if (userObj[key] == value) {
+                let idOdj = this._data[obj_key].returnData
+                if (idOdj[key] == value) {
                     return_id = obj_key
                 }
             }
@@ -201,6 +212,14 @@ class Sheet {
 
 var MemberDB = new Sheet("members")
 var ChannelDB = new Sheet("channels")
+
+MemberDB.orig_set = MemberDB.set.bind(MemberDB)
+MemberDB.set = (id, key, value) => {
+    if (key == "channel") {
+        ChannelDB.set(value, "owner", id)
+    }
+    MemberDB.orig_set(id, key, value)
+}
 // MemberDB.purchase = async (user, type, amount) => {
 //     let balance = MemberDB.get(user, type)
 

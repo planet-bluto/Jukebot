@@ -1,6 +1,7 @@
 const print = console.log
 const { SlashCommandBuilder } = require('discord.js')
 const { MemberDB } = require("../jukedb.js")
+const JukeUtils = require("../jukeutils.js")
 const PERMS = require("../perms.js")
 
 const COMMAND_INFO = {
@@ -61,7 +62,7 @@ async function execute(interaction) {
 
 		await Promise.all(sets)
 		await interaction.editReply({
-			content: `Set <${pre}${who.value}>'s ${type} balance to \`\`${amount}\`\``
+			content: `${JukeUtils.coinToEmote(type)} **Set <${pre}${who.value}>'s ${type} balance to \`\`${amount}\`\`** ${JukeUtils.coinToEmote(type)}`
 		})
 	} else {
 		await interaction.reply("You don't have access to this command")

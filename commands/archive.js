@@ -24,7 +24,7 @@ const choice = (val) => {return {name: val, value: val}}
 async function execute(interaction) {
 	let {user, channel} = interaction
 
-	if (await MemberDB.get(user.id, "channel") == channel.id) {
+	if (await MemberDB.get(user.id).channel == channel.id) {
 		await interaction.reply({
 			content: "‼ **Archiving PC...** ‼",
 			ephemeral: true

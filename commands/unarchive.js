@@ -25,7 +25,7 @@ const choice = (val) => {return {name: val, value: val}}
 async function execute(interaction) {
 	await interaction.deferReply({ephemeral: true})
 	let {user, client} = interaction
-	let channel = await client.channels.fetch(await MemberDB.get(user.id, "channel"))
+	let channel = await client.channels.fetch(await MemberDB.get(user.id).channel)
 	if (channel == null) {
 		await interaction.editReply("‼ **Your PC doesn't exist or has been deleted** ‼")
 	}
