@@ -13,5 +13,7 @@ module.exports = {
 		pf("ManageRoles"),
 		pf("ManageThreads")
 	]),
-	ADMIN: PermissionsBitField.Flags["Administrator"]
+	MANAGER: new PermissionsBitField([
+		pf("ManageMessages"),
+	]),
 }

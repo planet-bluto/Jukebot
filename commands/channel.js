@@ -28,7 +28,7 @@ async function execute(interaction) {
 	let {user, client} = interaction
 	let PC_ID = await MemberDB.get(user.id).channel
 	print(PC_ID)
-	await interaction.deferReply({ephemeral: true})
+	var promDefer = interaction.deferReply({ephemeral: true})
 
 	async function makePC() {
 		let name_option = interaction.options.get("name")
@@ -43,8 +43,10 @@ async function execute(interaction) {
 				}
 			]
 		})
-		await MemberDB.set(user.id, "channel", this_pc.id)
-		await interaction.editReply(`🎉 **Your PC has been made! <#${this_pc.id}>** 🎉\n*(You have permissions to edit the channel as you please!)*`)
+		await promDefer
+		var promSet = MemberDB.set(user.id, "channel", this_pc.id)
+		var promEdit = interaction.editReply(`🎉 **Your PC has been made! <#${this_pc.id}>** 🎉\n*(You have permissions to edit the channel as you please!)*`)
+		await Promise.all([promSet, promEdit])
 	}
 
 	if (PC_ID == null) {

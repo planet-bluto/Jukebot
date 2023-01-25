@@ -1,6 +1,19 @@
 const print = console.log
-const gsheetdb = require('gsheetdb')
+const gsheetdb = require('./gsheetdb.js').default
 const SHEET_ID = process.env['sheet']
+const SCRIPT_ID = process.env['script']
+
+function getAllFuncs(toCheck) {
+    const props = [];
+    let obj = toCheck;
+    do {
+        props.push(...Object.getOwnPropertyNames(obj));
+    } while (obj = Object.getPrototypeOf(obj));
+    
+    return props.sort().filter((e, i, arr) => { 
+       if (e!=arr[i+1] && typeof toCheck[e] == 'function') return true;
+    });
+}
 
 const schemas = {
     members: [
@@ -26,25 +39,57 @@ function wait(ms) {
 }
 
 function clone(obj) {
-    return JSON.parse(JSON.stringify(obj))
+    return Object.assign({}, obj)
 }
 
 const escapedChars = ["{", "}", "[", "]"]
 
-function escape(str) {
-    let newStr = str
-    escapedChars.forEach(char => {
-        newStr = newStr.replaceAll(char, "/"+char)
-    })
-    return newStr
+function getType(value) {
+    if (value == null) {
+        return "null"
+    } else if (Array.isArray(value)) {
+        return "Array"
+    } else if (typeof value == "string") {
+        return "String"
+    }
 }
 
-function unescape(str) {
-    let newStr = str
-    escapedChars.forEach(char => {
-        newStr = newStr.replaceAll("/"+char, char)
-    })
-    return newStr
+function escape(value) {
+    var valueType = getType(value)
+    switch (valueType) {
+        case "null":
+            return "{null}"
+        break;
+        case "Array":
+            return JSON.stringify(value)
+        break;
+        case "String":
+            let newStr = value
+            escapedChars.forEach(char => {
+                newStr = newStr.replaceAll(char, "/"+char)
+            })
+            return newStr
+        break;
+    }
+}
+
+function unescape(name, ind, value) {
+    var valueType = ( value == "{null}" ? null : schemas[name][ind].type)
+    switch (valueType) {
+        case "Array":
+            return JSON.parse(value)
+        break;
+        case "Number":
+            return value
+        break;
+        case "String":
+            let newStr = value
+            escapedChars.forEach(char => {
+                newStr = newStr.replaceAll("/"+char, char)
+            })
+            return newStr
+        break;
+    }
 }
 
 var formatData = (name, data) => {
@@ -70,19 +115,7 @@ var formatData = (name, data) => {
                         _rowData: row.values
                     }
                 } else {
-                    let valueType = (value == "{null}" ? "null" : schemas[name][v_ind].type)
-                    switch (valueType) {
-                        case "null":
-                            value = null
-                        break;
-                        case "String":
-                            value = unescape(value)
-                        break;
-                        case "Array":
-                            value = JSON.parse(value)
-                        break;
-                    }
-                    returnObj[this_key].returnData[headers[v_ind]] = value
+                    returnObj[this_key].returnData[headers[v_ind]] = unescape(name, v_ind, value)
                 }
             })
         }
@@ -96,6 +129,7 @@ class Sheet {
         this._name = name
         this._sheet = new gsheetdb({
             spreadsheetId: SHEET_ID,
+            scriptId: SCRIPT_ID,
             sheetName: name,
             credentialsJSON: require('./credentials.json')
         })
@@ -152,26 +186,14 @@ class Sheet {
     async set(id, key, value) {
         await this._updateData()
         let idData = this._data[id]
-        print(this._data._rowIndex[key])
+        value = escape(value)
         let valueInd = this._data._rowIndex[key]
-        let valueType = (value == null ? "null" : schemas[this._name][valueInd].type)
-        switch (valueType) {
-            case "null":
-                value = "{null}"
-            break;
-            case "Array":
-                value = JSON.stringify(value)
-            break;
-            case "String":
-                value = escape(value)
-            break;
-        }
         if (idData != null) {
             let newDataArray = idData._rowData
             newDataArray[valueInd] = value
             await this._sheet.updateRow(idData._index, newDataArray)
         } else {
-            let newRowData = schemas[this._name].map(sch => sch.default)
+            let newRowData = schemas[this._name].map(sch => escape(sch.default))
             newRowData[0] = id
             newRowData[this._data._rowIndex[key]] = value
             await this._sheet.insertRows([newRowData])
@@ -191,6 +213,31 @@ class Sheet {
         let idData = this._data[id]
         let newValue = (idData.returnData[key]-value)
         await this.set(id, key, newValue)
+    }
+
+    async push(id, key, value) {
+        await this._updateData()
+        var tempArr = this._data[id].returnData[key]
+        tempArr.push(value)
+        await this.set(id, key, tempArr)
+    }
+
+    async pull(id, key, value) {
+        await this._updateData()
+        var tempArr = this._data[id].returnData[key]
+        var ind = tempArr.indexOf(value)
+        tempArr.splice(ind, 1)
+        await this.set(id, key, tempArr)
+    }
+
+    async remove(id) {
+        await this._updateData()
+        let idData = this._data[id]
+        if (idData != null) {
+            let newDataArray = idData._rowData
+            newDataArray[0] = "{DELETE}"
+            await this._sheet.updateRow(idData._index, newDataArray)
+        }
     }
 
     async has(key, value) {

@@ -2,7 +2,8 @@
   "dependencies": {
     "discord.js": "^14.7.1",
     "dotenv": "^16.0.3",
-    "gsheetdb": "^1.0.4",
+    "google-auth-library": "^8.7.0",
+    "googleapis": "^110.0.0",
     "mongoose": "^6.8.4"
   }
 }
