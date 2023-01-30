@@ -2,7 +2,7 @@ const print = console.log
 const { SlashCommandBuilder } = require('discord.js')
 const PC_CAT_ID = process.env['pcat']
 const AR_CAT_ID = process.env['acat']
-const { MemberDB, canPurchase } = require("../jukedb.js")
+const { MemberDB, ChannelDB } = require("../jukedb.js")
 const JukeUtils = require("../jukeutils.js")
 const PERMS = require("../perms.js")
 
