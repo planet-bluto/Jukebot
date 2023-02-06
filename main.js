@@ -95,7 +95,7 @@ client.on("guildMemberAdd", async (member) => {
     channel.send(`${WELCOME_EMOJI} **Welcome, <@${member.id}>, to TheJukeBox Music Community!** ${WELCOME_EMOJI}\n*(Check out <#${INFO_CHANNEL}> for more information, or get your roles in <#${ROLES_CHANNEL}>)*`)
 })
 
-client.on("ready", () => {
+client.on("ready", async () => {
     print(`${client.user.username} Initialized!`)
 })
 

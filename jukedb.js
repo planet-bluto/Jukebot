@@ -21,6 +21,8 @@ const schemas = {
         {type: "Number", default: 0}, // jukes
         {type: "Number", default: 0}, // boxes
         {type: "String", default: null}, // channel_id
+        {type: "Badges", default: null}, // badges
+        {type: "Boolean", default: false}, // jukeboxer
     ],
     channels: [
         {type: "String", default: null}, // channel_id
@@ -44,18 +46,19 @@ function clone(obj) {
 
 const escapedChars = ["{", "}", "[", "]"]
 
-function getType(value) {
-    if (value == null) {
-        return "null"
-    } else if (Array.isArray(value)) {
-        return "Array"
-    } else if (typeof value == "string") {
-        return "String"
-    }
-}
+// function getType(value) {
+//     if (value == null) {
+//         return "null"
+//     } else if (Array.isArray(value)) {
+//         return "Array"
+//     } else if (typeof value == "string") {
+//         return "String"
+//     }
+// }
 
-function escape(value) {
-    var valueType = getType(value)
+function escape(name, ind, value) {
+    // var valueType = getType(value)
+    var valueType = schemas[name][ind].type
     switch (valueType) {
         case "null":
             return "{null}"
@@ -70,25 +73,57 @@ function escape(value) {
             })
             return newStr
         break;
+        case "Badges":
+            let retArr = []
+            Object.values(value).forEach(i => {
+                retArr.push(i == true ? 1 : 0)
+            })
+            return JSON.stringify(retArr)
+        break;
+        case "Boolean":
+            return value
+        break;
+        default:
+            return value
     }
 }
 
 function unescape(name, ind, value) {
-    var valueType = ( value == "{null}" ? null : schemas[name][ind].type)
-    switch (valueType) {
-        case "Array":
-            return JSON.parse(value)
-        break;
-        case "Number":
-            return value
-        break;
-        case "String":
-            let newStr = value
-            escapedChars.forEach(char => {
-                newStr = newStr.replaceAll("/"+char, char)
-            })
-            return newStr
-        break;
+    var valueType = schemas[name][ind].type
+    if (value == "{null}") {
+        return null
+    } else {
+        switch (valueType) {
+            case "Array":
+                return JSON.parse(value)
+            break;
+            case "Number":
+                return value
+            break;
+            case "String":
+                let newStr = value
+                escapedChars.forEach(char => {
+                    newStr = newStr.replaceAll("/"+char, char)
+                })
+                return newStr
+            break;
+            case "Badges":
+                let retObj = {}
+                let thisArr = JSON.parse(value)
+                let keys = Object.values(require("./cards/badges.json"))
+
+                keys.forEach((key, i) => {
+                    retObj[key] = (thisArr[i] == 1 ? true : false)
+                })
+
+                return retObj
+            break;
+            case "Boolean":
+                return value
+            break;
+            default:
+                return value
+        }
     }
 }
 
@@ -186,14 +221,14 @@ class Sheet {
     async set(id, key, value) {
         await this._updateData()
         let idData = this._data[id]
-        value = escape(value)
         let valueInd = this._data._rowIndex[key]
+        value = escape(this._name, valueInd, value)
         if (idData != null) {
             let newDataArray = idData._rowData
             newDataArray[valueInd] = value
             await this._sheet.updateRow(idData._index, newDataArray)
         } else {
-            let newRowData = schemas[this._name].map(sch => escape(sch.default))
+            let newRowData = schemas[this._name].map(sch => escape(this._name, valueInd, sch.default))
             newRowData[0] = id
             newRowData[this._data._rowIndex[key]] = value
             await this._sheet.insertRows([newRowData])
@@ -261,11 +296,14 @@ var MemberDB = new Sheet("members")
 var ChannelDB = new Sheet("channels")
 
 MemberDB.orig_set = MemberDB.set.bind(MemberDB)
-MemberDB.set = (id, key, value) => {
+MemberDB.set = async (id, key, value) => {
+    var promises = []
     if (key == "channel") {
-        ChannelDB.set(value, "owner", id)
+        promises.push(ChannelDB.set(value, "owner", id))
     }
-    MemberDB.orig_set(id, key, value)
+    promises.push(MemberDB.orig_set(id, key, value))
+
+    await Promise.all(promises)
 }
 // MemberDB.purchase = async (user, type, amount) => {
 //     let balance = MemberDB.get(user, type)
